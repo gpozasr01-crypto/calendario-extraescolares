@@ -404,35 +404,148 @@ function adminList(){
   list.innerHTML="";
 
 
+  // Agrupar actividades por mes y año
+  const groups={};
+
+
   activities.forEach(a=>{
 
-    let r=document.createElement("div");
+    if(!a.fecha)return;
 
-    r.className="adminRow";
+    const [y,m]=a.fecha.split("-").map(Number);
+
+    const key=`${y}-${String(m).padStart(2,"0")}`;
+
+    if(!groups[key]){
+      groups[key]={
+        year:y,
+        month:m,
+        activities:[]
+      };
+    }
+
+    groups[key].activities.push(a);
+
+  });
 
 
-    r.innerHTML=
-      `<div>`+
-        `<div class="adminTitle">${esc(a.titulo)}</div>`+
-        `<div class="adminMeta">`+
-          `${esc(fmt(a.fecha))}`+
-          `${a.hora?" · "+esc(a.hora):""}`+
-          `${a.grupos?" · "+esc(a.grupos):""}`+
+  // Ordenar los meses cronológicamente
+  const monthsKeys=Object.keys(groups).sort();
+
+
+  if(!monthsKeys.length){
+
+    list.innerHTML="<p>No hay actividades programadas.</p>";
+
+    return;
+
+  }
+
+
+  const now=new Date();
+
+  const currentKey=
+    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+
+
+  monthsKeys.forEach(monthKey=>{
+
+    const group=groups[monthKey];
+
+    // Ordenar actividades por fecha y hora
+    group.activities.sort((a,b)=>{
+
+      const dateA=`${a.fecha} ${a.hora||"00:00"}`;
+      const dateB=`${b.fecha} ${b.hora||"00:00"}`;
+
+      return dateA.localeCompare(dateB);
+
+    });
+
+
+    const monthContainer=document.createElement("div");
+
+    monthContainer.className="adminMonth";
+
+
+    const monthButton=document.createElement("button");
+
+    monthButton.type="button";
+
+    monthButton.className="adminMonthHeader";
+
+
+    const monthName=months[group.month-1];
+
+    monthButton.innerHTML=
+      `<span>${monthName.charAt(0).toUpperCase()+monthName.slice(1)} ${group.year}</span>`+
+      `<span class="adminMonthArrow">▶</span>`;
+
+
+    const monthActivities=document.createElement("div");
+
+    monthActivities.className="adminMonthActivities";
+
+
+    // El mes actual aparece abierto
+    const isCurrent=monthKey===currentKey;
+
+    if(isCurrent){
+
+      monthActivities.classList.add("open");
+
+      monthButton.classList.add("open");
+
+    }
+
+
+    monthButton.onclick=()=>{
+
+      const open=monthActivities.classList.toggle("open");
+
+      monthButton.classList.toggle("open",open);
+
+    };
+
+
+    group.activities.forEach(a=>{
+
+      let r=document.createElement("div");
+
+      r.className="adminRow";
+
+
+      r.innerHTML=
+        `<div>`+
+          `<div class="adminTitle">${esc(a.titulo)}</div>`+
+          `<div class="adminMeta">`+
+            `${esc(fmt(a.fecha))}`+
+            `${a.hora?" · "+esc(a.hora):""}`+
+            `${a.grupos?" · "+esc(a.grupos):""}`+
+          `</div>`+
         `</div>`+
-      `</div>`+
 
-      `<div class="rowActions">`+
-        `<button class="smallBtn edit">Editar</button>`+
-        `<button class="smallBtn danger del">Eliminar</button>`+
-      `</div>`;
-
-
-    r.querySelector(".edit").onclick=()=>fill(a);
-
-    r.querySelector(".del").onclick=()=>del(a);
+        `<div class="rowActions">`+
+          `<button class="smallBtn edit">Editar</button>`+
+          `<button class="smallBtn danger del">Eliminar</button>`+
+        `</div>`;
 
 
-    list.appendChild(r);
+      r.querySelector(".edit").onclick=()=>fill(a);
+
+      r.querySelector(".del").onclick=()=>del(a);
+
+
+      monthActivities.appendChild(r);
+
+    });
+
+
+    monthContainer.appendChild(monthButton);
+
+    monthContainer.appendChild(monthActivities);
+
+    list.appendChild(monthContainer);
 
   });
 
