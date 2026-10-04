@@ -24,23 +24,200 @@ const months=[
 const weeks=["L","M","X","J","V","S","D"];
 
 
+// ============================================================
+// CALENDARIO ACADÉMICO 2026/27
+// ============================================================
+//
+// Estos días NO se guardan en Supabase.
+// Son elementos fijos del calendario y no aparecen en
+// "Actividades del curso".
+//
+// Los periodos largos se sombrean en todas sus fechas.
+// Los días concretos aparecen como festivos/puentes.
+//
+
+const academicPeriods=[
+
+  {
+    start:"2026-12-23",
+    end:"2027-01-07",
+    title:"Vacaciones de Navidad",
+    shortTitle:"NAVIDAD"
+  },
+
+  {
+    start:"2027-02-08",
+    end:"2027-02-09",
+    title:"Carnavales",
+    shortTitle:"CARNAVALES"
+  },
+
+  {
+    start:"2027-03-22",
+    end:"2027-03-29",
+    title:"Semana Santa",
+    shortTitle:"SEMANA SANTA"
+  }
+
+];
+
+
+const academicDays=[
+
+  {
+    date:"2026-09-08",
+    title:"Día de Extremadura",
+    type:"Festivo"
+  },
+
+  {
+    date:"2026-10-12",
+    title:"Fiesta Nacional de España",
+    type:"Festivo"
+  },
+
+  {
+    date:"2026-11-01",
+    title:"Todos los Santos",
+    type:"Festivo"
+  },
+
+  {
+    date:"2026-11-02",
+    title:"Puente de Todos los Santos",
+    type:"Puente"
+  },
+
+  {
+    date:"2026-12-06",
+    title:"Día de la Constitución",
+    type:"Festivo"
+  },
+
+  {
+    date:"2026-12-07",
+    title:"Puente de la Constitución",
+    type:"Puente"
+  },
+
+  {
+    date:"2026-12-08",
+    title:"Inmaculada Concepción",
+    type:"Festivo"
+  },
+
+  {
+    date:"2027-01-29",
+    title:"Día del Docente",
+    type:"No lectivo"
+  },
+
+  {
+    date:"2027-05-01",
+    title:"Fiesta del Trabajo",
+    type:"Festivo"
+  },
+
+  {
+    date:"2027-05-10",
+    title:"Romería de la Virgen de Argeme",
+    type:"Festivo local · Coria"
+  }
+
+];
+
+
+// ============================================================
+// FUNCIONES DEL CALENDARIO ACADÉMICO
+// ============================================================
+
+function academicPeriodForDate(dateKey){
+
+  return academicPeriods.find(p=>
+    dateKey>=p.start &&
+    dateKey<=p.end
+  )||null;
+
+}
+
+
+function academicDayForDate(dateKey){
+
+  return academicDays.filter(a=>
+    a.date===dateKey
+  );
+
+}
+
+
+function formatAcademicPeriod(p){
+
+  return `${fmt(p.start)} al ${fmt(p.end)}`;
+
+}
+
+
+function academicDetail(item){
+
+  if(item.period){
+
+    $("activityContent").innerHTML=
+      `<div class="eyebrow">CALENDARIO ACADÉMICO</div>`+
+      `<h2>${esc(item.period.title)}</h2>`+
+      `<div class="detail"><dl>`+
+      `<dt>Periodo</dt>`+
+      `<dd>${esc(formatAcademicPeriod(item.period))}</dd>`+
+      `<dt>Situación</dt>`+
+      `<dd>Periodo no lectivo</dd>`+
+      `</dl></div>`;
+
+  }else{
+
+    $("activityContent").innerHTML=
+      `<div class="eyebrow">CALENDARIO ACADÉMICO</div>`+
+      `<h2>${esc(item.title)}</h2>`+
+      `<div class="detail"><dl>`+
+      `<dt>Fecha</dt>`+
+      `<dd>${esc(fmt(item.date))}</dd>`+
+      `<dt>Situación</dt>`+
+      `<dd>${esc(item.type)}</dd>`+
+      `</dl></div>`;
+
+  }
+
+  $("activityDialog").showModal();
+
+}
+
+
+// ============================================================
+// UTILIDADES
+// ============================================================
+
 function key(d){
+
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
 }
 
 
 function fmt(s){
+
   if(!s)return"";
+
   const [y,m,d]=s.split("-").map(Number);
+
   return new Intl.DateTimeFormat("es-ES",{
     day:"numeric",
     month:"long",
     year:"numeric"
   }).format(new Date(y,m-1,d));
+
 }
 
 
 function esc(v){
+
   return String(v??"").replace(
     /[&<>"']/g,
     m=>({
@@ -51,15 +228,18 @@ function esc(v){
       "'":"&#039;"
     }[m])
   );
+
 }
 
 
 function cls(v){
+
   return (v||"other")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g,"")
     .replace(/\s+/g,"-");
+
 }
 
 
@@ -68,19 +248,29 @@ function cls(v){
 // ============================================================
 
 async function updateAdminButton(){
+
   try{
+
     const {data}=await db.auth.getUser();
 
     if(data.user && data.user.id===ADMIN_USER_ID){
+
       $("adminBtn").style.display="";
+
     }else{
+
       $("adminBtn").style.display="none";
+
     }
 
   }catch(error){
+
     console.error(error);
+
     $("adminBtn").style.display="none";
+
   }
+
 }
 
 
@@ -120,6 +310,7 @@ async function load(){
   activities=data||[];
 
   render();
+
 }
 
 
@@ -134,12 +325,20 @@ function render(){
 
   $("calendar").innerHTML="";
 
+
+  // Cabecera de días de la semana
   weeks.forEach(w=>{
+
     let e=document.createElement("div");
+
     e.className="weekday";
+
     e.textContent=w;
+
     $("calendar").appendChild(e);
+
   });
+
 
   const first=new Date(
     month.getFullYear(),
@@ -162,9 +361,11 @@ function render(){
   ).getDate();
 
 
+  // 42 casillas para mantener la estructura del calendario
   for(let i=0;i<42;i++){
 
     let d;
+
 
     if(i<offset){
 
@@ -193,29 +394,124 @@ function render(){
     }
 
 
+    const dateKey=key(d);
+
     let cell=document.createElement("div");
 
     cell.className="day";
 
+// Sábados y domingos: días no lectivos
+if(d.getDay()===0 || d.getDay()===6){
+
+  cell.classList.add("weekend");
+
+}
+
+    // Días pertenecientes al mes anterior/siguiente
     if(d.getMonth()!==month.getMonth()){
+
       cell.classList.add("muted");
+
     }
 
-    if(key(d)===key(new Date())){
+
+    // Día actual
+    if(dateKey===key(new Date())){
+
       cell.classList.add("today");
+
+    }
+
+
+    // ========================================================
+    // CALENDARIO ACADÉMICO
+    // ========================================================
+
+    const academicPeriod=
+      academicPeriodForDate(dateKey);
+
+
+    const academicDaysToday=
+      academicDayForDate(dateKey);
+
+
+    // Si pertenece a un periodo largo, se marca toda la celda
+    if(academicPeriod){
+
+      cell.classList.add("nonLectivo");
+
     }
 
 
     let n=document.createElement("div");
 
     n.className="dayNum";
+
     n.textContent=d.getDate();
 
     cell.appendChild(n);
 
 
+    // ========================================================
+    // ETIQUETA DEL INICIO DE LOS PERIODOS LARGOS
+    // ========================================================
+
+    if(
+      academicPeriod &&
+      dateKey===academicPeriod.start
+    ){
+
+      let b=document.createElement("button");
+
+      b.type="button";
+
+      b.className="event academic academicPeriod";
+
+      b.innerHTML=
+        `<span class="eventTitle">${esc(academicPeriod.shortTitle)}</span>`;
+
+      b.onclick=()=>academicDetail({
+        period:academicPeriod
+      });
+
+      cell.appendChild(b);
+
+    }
+
+
+    // ========================================================
+    // FESTIVOS Y PUENTES
+    // ========================================================
+
+    academicDaysToday.forEach(a=>{
+
+      let b=document.createElement("button");
+
+      b.type="button";
+
+      b.className=
+        `event academic ${
+          a.type==="Puente"
+            ?"academicBridge"
+            :"academicHoliday"
+        }`;
+
+      b.innerHTML=
+        `<span class="eventTitle">${esc(a.title)}</span>`;
+
+      b.onclick=()=>academicDetail(a);
+
+      cell.appendChild(b);
+
+    });
+
+
+    // ========================================================
+    // ACTIVIDADES EXTRAESCOLARES
+    // ========================================================
+
     activities
-      .filter(a=>a.fecha===key(d))
+      .filter(a=>a.fecha===dateKey)
       .forEach(a=>{
 
         let b=document.createElement("button");
@@ -224,7 +520,10 @@ function render(){
 
         b.innerHTML=
           `<span class="eventTitle">${esc(a.titulo||"Sin título")}</span>`+
-          `${a.hora?`<span class="eventTime">${esc(a.hora)}</span>`:""}`;
+          `${a.hora?
+            `<span class="eventTime">${esc(a.hora)}</span>`
+            :""
+          }`;
 
         b.onclick=()=>detail(a);
 
@@ -241,7 +540,11 @@ function render(){
   $("calendar").classList.remove("hidden");
 
 
-  const count=activities.filter(a=>{
+  // ==========================================================
+  // COMPROBAR SI HAY ALGO QUE MOSTRAR EN EL MES
+  // ==========================================================
+
+  const countActivities=activities.filter(a=>{
 
     if(!a.fecha)return false;
 
@@ -253,8 +556,62 @@ function render(){
   }).length;
 
 
-  if(!count){
+  const countAcademicDays=academicDays.filter(a=>{
+
+    const [y,m]=a.date.split("-").map(Number);
+
+    return y===month.getFullYear() &&
+           m===month.getMonth()+1;
+
+  }).length;
+
+
+  const countAcademicPeriods=academicPeriods.filter(p=>{
+
+    const start=p.start.split("-").map(Number);
+
+    const end=p.end.split("-").map(Number);
+
+    const monthStart=new Date(
+      month.getFullYear(),
+      month.getMonth(),
+      1
+    );
+
+    const monthEnd=new Date(
+      month.getFullYear(),
+      month.getMonth()+1,
+      0
+    );
+
+
+    const periodStart=new Date(
+      start[0],
+      start[1]-1,
+      start[2]
+    );
+
+    const periodEnd=new Date(
+      end[0],
+      end[1]-1,
+      end[2]
+    );
+
+
+    return periodStart<=monthEnd &&
+           periodEnd>=monthStart;
+
+  }).length;
+
+
+  if(
+    !countActivities &&
+    !countAcademicDays &&
+    !countAcademicPeriods
+  ){
+
     $("empty").classList.remove("hidden");
+
   }
 
 }
@@ -291,6 +648,7 @@ function detail(a){
     `</dl></div>`;
 
   $("activityDialog").showModal();
+
 }
 
 
@@ -416,13 +774,17 @@ function adminList(){
 
     const key=`${y}-${String(m).padStart(2,"0")}`;
 
+
     if(!groups[key]){
+
       groups[key]={
         year:y,
         month:m,
         activities:[]
       };
+
     }
+
 
     groups[key].activities.push(a);
 
@@ -452,10 +814,12 @@ function adminList(){
 
     const group=groups[monthKey];
 
+
     // Ordenar actividades por fecha y hora
     group.activities.sort((a,b)=>{
 
       const dateA=`${a.fecha} ${a.hora||"00:00"}`;
+
       const dateB=`${b.fecha} ${b.hora||"00:00"}`;
 
       return dateA.localeCompare(dateB);
@@ -477,6 +841,7 @@ function adminList(){
 
     const monthName=months[group.month-1];
 
+
     monthButton.innerHTML=
       `<span>${monthName.charAt(0).toUpperCase()+monthName.slice(1)} ${group.year}</span>`+
       `<span class="adminMonthArrow">▶</span>`;
@@ -490,6 +855,7 @@ function adminList(){
     // El mes actual aparece abierto
     const isCurrent=monthKey===currentKey;
 
+
     if(isCurrent){
 
       monthActivities.classList.add("open");
@@ -501,7 +867,8 @@ function adminList(){
 
     monthButton.onclick=()=>{
 
-      const open=monthActivities.classList.toggle("open");
+      const open=
+        monthActivities.classList.toggle("open");
 
       monthButton.classList.toggle("open",open);
 
@@ -559,7 +926,9 @@ function adminList(){
 async function del(a){
 
   if(!confirm(`¿Eliminar "${a.titulo}"?`)){
+
     return;
+
   }
 
 
@@ -576,6 +945,7 @@ async function del(a){
     console.error(error);
 
     return;
+
   }
 
 
@@ -595,7 +965,10 @@ async function admin(){
   const {data}=await db.auth.getUser();
 
 
-  if(data.user && data.user.id===ADMIN_USER_ID){
+  if(
+    data.user &&
+    data.user.id===ADMIN_USER_ID
+  ){
 
     $("adminDialog").showModal();
 
@@ -631,21 +1004,11 @@ function openAdminLogin(){
 // ============================================================
 // RESTABLECIMIENTO DE CONTRASEÑA
 // ============================================================
-//
-// Cuando Supabase abre una sesión mediante el enlace de
-// recuperación, genera el evento PASSWORD_RECOVERY.
-// En ese momento pedimos la nueva contraseña y la guardamos.
-//
-// Esto permite utilizar el enlace "Reset password" de Supabase
-// sin necesidad de modificar el HTML.
-//
 
 db.auth.onAuthStateChange(async(event,session)=>{
 
   if(event==="PASSWORD_RECOVERY"){
 
-    // Dejamos que Supabase termine de establecer la sesión
-    // antes de intentar actualizar la contraseña.
     setTimeout(async()=>{
 
       let nuevaPassword=prompt(
@@ -666,6 +1029,7 @@ db.auth.onAuthStateChange(async(event,session)=>{
         await updateAdminButton();
 
         return;
+
       }
 
 
@@ -684,6 +1048,7 @@ db.auth.onAuthStateChange(async(event,session)=>{
         await updateAdminButton();
 
         return;
+
       }
 
 
@@ -706,6 +1071,7 @@ db.auth.onAuthStateChange(async(event,session)=>{
         await updateAdminButton();
 
         return;
+
       }
 
 
@@ -796,7 +1162,10 @@ $("loginForm").onsubmit=async e=>{
   }
 
 
-  if(data.user && data.user.id===ADMIN_USER_ID){
+  if(
+    data.user &&
+    data.user.id===ADMIN_USER_ID
+  ){
 
     $("loginDialog").close();
 
