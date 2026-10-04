@@ -1,3 +1,4 @@
+
 // CONFIGURACIÓN: usa la URL del proyecto y la Publishable/Anon key.
 // NUNCA pongas aquí la service_role key.
 const SUPABASE_URL="https://lgarvwwikqdfaeckxsay.supabase.co";
@@ -27,14 +28,6 @@ const weeks=["L","M","X","J","V","S","D"];
 // ============================================================
 // CALENDARIO ACADÉMICO 2026/27
 // ============================================================
-//
-// Estos días NO se guardan en Supabase.
-// Son elementos fijos del calendario y no aparecen en
-// "Actividades del curso".
-//
-// Los periodos largos se sombrean en todas sus fechas.
-// Los días concretos aparecen como festivos/puentes.
-//
 
 const academicPeriods=[
 
@@ -212,6 +205,73 @@ function fmt(s){
     month:"long",
     year:"numeric"
   }).format(new Date(y,m-1,d));
+
+}
+
+
+function fmtShort(s){
+
+  if(!s)return"";
+
+  const [y,m,d]=s.split("-").map(Number);
+
+  return new Intl.DateTimeFormat("es-ES",{
+    day:"numeric",
+    month:"long"
+  }).format(new Date(y,m-1,d));
+
+}
+
+
+function activityEnd(a){
+
+  return a.fecha_fin || a.fecha;
+
+}
+
+
+function activityIsMultiDay(a){
+
+  return !!(
+    a.fecha &&
+    activityEnd(a) &&
+    activityEnd(a)!==a.fecha
+  );
+
+}
+
+
+function activityIncludesDate(a,dateKey){
+
+  if(!a.fecha)return false;
+
+  const end=activityEnd(a);
+
+  return dateKey>=a.fecha && dateKey<=end;
+
+}
+
+
+function activityRangeText(a){
+
+  const end=activityEnd(a);
+
+  if(!end || end===a.fecha){
+
+    return fmt(a.fecha);
+
+  }
+
+  const [y1,m1,d1]=a.fecha.split("-").map(Number);
+  const [y2,m2,d2]=end.split("-").map(Number);
+
+  if(y1===y2 && m1===m2){
+
+    return `Del ${d1} al ${d2} de ${months[m1-1]} de ${y1}`;
+
+  }
+
+  return `Del ${fmt(a.fecha)} al ${fmt(end)}`;
 
 }
 
@@ -400,12 +460,14 @@ function render(){
 
     cell.className="day";
 
-// Sábados y domingos: días no lectivos
-if(d.getDay()===0 || d.getDay()===6){
 
-  cell.classList.add("weekend");
+    // Sábados y domingos: días no lectivos
+    if(d.getDay()===0 || d.getDay()===6){
 
-}
+      cell.classList.add("weekend");
+
+    }
+
 
     // Días pertenecientes al mes anterior/siguiente
     if(d.getMonth()!==month.getMonth()){
@@ -506,52 +568,326 @@ if(d.getDay()===0 || d.getDay()===6){
     });
 
 
-    // ========================================================
-    // ACTIVIDADES EXTRAESCOLARES
-    // ========================================================
+  // ========================================================
+// ACTIVIDADES EXTRAESCOLARES
+// ========================================================
 
-    activities
-      .filter(a=>a.fecha===dateKey)
-      .forEach(a=>{
+activities
+  .filter(a => activityIncludesDate(a, dateKey))
+  .forEach(a => {
 
-        let b=document.createElement("button");
+    let b = document.createElement("button");
 
-        b.className=`event ${cls(a.tipo)}`;
+    const multi = activityIsMultiDay(a);
 
-        b.innerHTML=
-          `<span class="eventTitle">${esc(a.titulo||"Sin título")}</span>`+
-          `${a.hora?
-            `<span class="eventTime">${esc(a.hora)}</span>`
-            :""
+    /*
+     * Normalizamos las fechas a YYYY-MM-DD.
+     * Así evitamos problemas si activityEnd() devuelve
+     * un objeto Date o una fecha con formato diferente.
+     */
+
+    const startKey = String(a.fecha).slice(0, 10);
+
+    const endRaw = activityEnd(a);
+
+    const endKey =
+      endRaw instanceof Date
+        ? endRaw.toISOString().slice(0, 10)
+        : String(endRaw).slice(0, 10);
+
+
+    b.type = "button";
+
+    b.className = `event ${cls(a.tipo)}`;
+
+
+    // ====================================================
+    // ACTIVIDADES DE VARIOS DÍAS
+    // ====================================================
+
+    if (multi) {
+
+      const activityColors = {
+        cultural: "#f2efff",
+        excursion: "#fff1eb",
+        deportiva: "#ebf8f1",
+        visita: "#edf5ff",
+        taller: "#fff7e4",
+        convivencia: "#fff0f7"
+      };
+
+      const activityBorders = {
+        cultural: "#7c5cff",
+        excursion: "#ef7d4d",
+        deportiva: "#27a36b",
+        visita: "#3584e4",
+        taller: "#d18b20",
+        convivencia: "#c44d8a"
+      };
+
+      const activityType = cls(a.tipo);
+
+      const activityColor =
+        activityColors[activityType] || "#f2f4f7";
+
+      const activityBorder =
+        activityBorders[activityType] || "#94a3b8";
+
+
+      // --------------------------------------------------
+      // FONDO
+      // --------------------------------------------------
+
+      b.style.setProperty(
+        "background",
+        activityColor,
+        "important"
+      );
+
+
+      // --------------------------------------------------
+      // COLOR GENERAL
+      // --------------------------------------------------
+
+      b.style.setProperty(
+        "border-color",
+        activityBorder,
+        "important"
+      );
+
+
+      // --------------------------------------------------
+      // TAMAÑO
+      // --------------------------------------------------
+
+      b.style.setProperty(
+        "min-height",
+        "34px",
+        "important"
+      );
+
+      b.style.setProperty(
+        "display",
+        "block",
+        "important"
+      );
+
+
+      // ==================================================
+      // REMATES LATERALES
+      // ==================================================
+
+      // PRIMER DÍA
+      if (dateKey === startKey) {
+
+        b.style.setProperty(
+          "border-left",
+          `5px solid ${activityBorder}`,
+          "important"
+        );
+
+        b.style.setProperty(
+          "border-right",
+          "0",
+          "important"
+        );
+
+      }
+
+
+      // DÍAS INTERMEDIOS
+      else if (
+        dateKey > startKey &&
+        dateKey < endKey
+      ) {
+
+        b.style.setProperty(
+          "border-left",
+          "0",
+          "important"
+        );
+
+        b.style.setProperty(
+          "border-right",
+          "0",
+          "important"
+        );
+
+      }
+
+
+      // ÚLTIMO DÍA
+      else if (dateKey === endKey) {
+
+        b.style.setProperty(
+          "border-left",
+          "0",
+          "important"
+        );
+
+        b.style.setProperty(
+          "border-right",
+          `6px solid ${activityBorder}`,
+          "important"
+        );
+
+      }
+
+    }
+
+
+    // ====================================================
+    // ACTIVIDAD DE VARIOS DÍAS
+    // ====================================================
+
+    if (multi) {
+
+      b.classList.add("multiDay");
+
+
+      // ----------------------------------------------
+      // PRIMER DÍA
+      // ----------------------------------------------
+
+      if (dateKey === startKey) {
+
+        b.classList.add("multiDayStart");
+
+      }
+
+
+      // ----------------------------------------------
+      // DÍAS INTERMEDIOS
+      // ----------------------------------------------
+
+      else if (
+        dateKey > startKey &&
+        dateKey < endKey
+      ) {
+
+        b.classList.add("multiDayMiddle");
+
+      }
+
+
+      // ----------------------------------------------
+      // ÚLTIMO DÍA
+      // ----------------------------------------------
+
+      else if (dateKey === endKey) {
+
+        b.classList.add("multiDayEnd");
+
+      }
+
+    }
+
+
+    // ====================================================
+    // ACTIVIDAD DE UN SOLO DÍA
+    // ====================================================
+
+    if (!multi) {
+
+      b.innerHTML =
+        `<span class="eventTitle">${esc(a.titulo || "Sin título")}</span>` +
+        `${a.hora
+          ? `<span class="eventTime">${esc(a.hora)}</span>`
+          : ""
+        }`;
+
+    }
+
+
+    // ====================================================
+    // ACTIVIDAD DE VARIOS DÍAS
+    // ====================================================
+
+    else {
+
+      // ----------------------------------------------
+      // PRIMER DÍA
+      // ----------------------------------------------
+
+      if (dateKey === startKey) {
+
+        b.innerHTML =
+          `<span class="eventTitle">${esc(a.titulo || "Sin título")}</span>` +
+          `<span class="multiDayRange">${esc(activityRangeText(a))}</span>` +
+          `${a.hora
+            ? `<span class="eventTime">${esc(a.hora)}</span>`
+            : ""
           }`;
 
-        b.onclick=()=>detail(a);
-
-        cell.appendChild(b);
-
-      });
+      }
 
 
-    $("calendar").appendChild(cell);
+      // ----------------------------------------------
+      // RESTO DE DÍAS
+      // ----------------------------------------------
 
-  }
+      else {
+
+        b.innerHTML =
+          `<span class="multiDayContinuation"></span>`;
+
+      }
+
+    }
 
 
-  $("calendar").classList.remove("hidden");
+    // ====================================================
+    // INFORMACIÓN AL PASAR EL RATÓN
+    // ====================================================
 
+    b.title =
+      multi
+        ? `${a.titulo || "Sin título"} · ${activityRangeText(a)}`
+        : (a.titulo || "Sin título");
+
+
+    // ====================================================
+    // ABRIR DETALLE
+    // ====================================================
+
+    b.onclick = () => detail(a);
+
+    cell.appendChild(b);
+
+  });
+
+
+$("calendar").appendChild(cell);
+
+}
+
+
+$("calendar").classList.remove("hidden");
 
   // ==========================================================
   // COMPROBAR SI HAY ALGO QUE MOSTRAR EN EL MES
   // ==========================================================
 
+  const monthStart=
+    `${month.getFullYear()}-${String(month.getMonth()+1).padStart(2,"0")}-01`;
+
+  const monthEndDate=new Date(
+    month.getFullYear(),
+    month.getMonth()+1,
+    0
+  );
+
+  const monthEnd=key(monthEndDate);
+
+
   const countActivities=activities.filter(a=>{
 
     if(!a.fecha)return false;
 
-    const [y,m]=a.fecha.split("-").map(Number);
+    const end=activityEnd(a);
 
-    return y===month.getFullYear() &&
-           m===month.getMonth()+1;
+    return a.fecha<=monthEnd &&
+           end>=monthStart;
 
   }).length;
 
@@ -572,19 +908,6 @@ if(d.getDay()===0 || d.getDay()===6){
 
     const end=p.end.split("-").map(Number);
 
-    const monthStart=new Date(
-      month.getFullYear(),
-      month.getMonth(),
-      1
-    );
-
-    const monthEnd=new Date(
-      month.getFullYear(),
-      month.getMonth()+1,
-      0
-    );
-
-
     const periodStart=new Date(
       start[0],
       start[1]-1,
@@ -598,8 +921,12 @@ if(d.getDay()===0 || d.getDay()===6){
     );
 
 
-    return periodStart<=monthEnd &&
-           periodEnd>=monthStart;
+    return periodStart<=monthEndDate &&
+           periodEnd>=new Date(
+             month.getFullYear(),
+             month.getMonth(),
+             1
+           );
 
   }).length;
 
@@ -623,12 +950,15 @@ if(d.getDay()===0 || d.getDay()===6){
 
 function detail(a){
 
+  const multi=activityIsMultiDay(a);
+
   $("activityContent").innerHTML=
     `<div class="eyebrow">${esc(a.tipo||"ACTIVIDAD")}</div>`+
     `<h2>${esc(a.titulo||"Sin título")}</h2>`+
     `<div class="detail"><dl>`+
 
-    `<dt>Fecha</dt><dd>${esc(fmt(a.fecha))}</dd>`+
+    `<dt>${multi?"Fechas":"Fecha"}</dt>`+
+    `<dd>${esc(activityRangeText(a))}</dd>`+
 
     `${a.hora?
       `<dt>Hora</dt><dd>${esc(a.hora)}</dd>`:""}`+
@@ -671,6 +1001,7 @@ function fill(a){
 
   $("titulo").value=a.titulo||"";
   $("fecha").value=a.fecha||"";
+  $("fechaFin").value=a.fecha_fin||a.fecha||"";
   $("hora").value=a.hora||"";
   $("tipo").value=a.tipo||"";
   $("grupos").value=a.grupos||"";
@@ -695,9 +1026,30 @@ async function save(e){
   e.preventDefault();
 
 
+  const fechaInicio=$("fecha").value;
+  const fechaFin=$("fechaFin").value;
+
+
+  if(
+    fechaInicio &&
+    fechaFin &&
+    fechaFin<fechaInicio
+  ){
+
+    $("formMessage").textContent=
+      "La fecha de fin no puede ser anterior a la fecha de inicio.";
+
+    $("formMessage").classList.remove("hidden");
+
+    return;
+
+  }
+
+
   const p={
     titulo:$("titulo").value.trim(),
-    fecha:$("fecha").value,
+    fecha:fechaInicio,
+    fecha_fin:fechaFin||fechaInicio,
     hora:$("hora").value.trim(),
     tipo:$("tipo").value,
     grupos:$("grupos").value.trim(),
@@ -882,11 +1234,14 @@ function adminList(){
       r.className="adminRow";
 
 
+      const range=activityRangeText(a);
+
+
       r.innerHTML=
         `<div>`+
           `<div class="adminTitle">${esc(a.titulo)}</div>`+
           `<div class="adminMeta">`+
-            `${esc(fmt(a.fecha))}`+
+            `${esc(range)}`+
             `${a.hora?" · "+esc(a.hora):""}`+
             `${a.grupos?" · "+esc(a.grupos):""}`+
           `</div>`+
