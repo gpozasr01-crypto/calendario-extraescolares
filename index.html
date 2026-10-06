@@ -1,56 +1,80 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Extraescolares · IES Alagón</title>
-<link rel="stylesheet" href="styles.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-<header class="topbar">
-  <div><div class="eyebrow">IES ALAGÓN</div><h1>Actividades extraescolares</h1></div>
-  <button id="adminBtn" class="ghost">Administrar</button>
-</header>
-<main class="container">
-<section class="card">
-  <div class="toolbar">
-    <button id="prev" class="nav">‹</button>
-    <div><h2 id="month"></h2><button id="today" class="today">Hoy</button></div>
-    <button id="next" class="nav">›</button>
-  </div>
-  <div class="legend"><span><i class="cultural"></i>Cultural</span><span><i class="excursion"></i>Excursión</span><span><i class="sport"></i>Deportiva</span><span><i class="other"></i>Otras</span></div>
-  <div id="status" class="status">Cargando actividades…</div>
-  <div id="calendar" class="calendar hidden"></div>
-  <div id="empty" class="empty hidden">No hay actividades programadas para este mes.</div>
-  <div id="error" class="error hidden"></div>
-</section>
-</main>
+async function save(e){
 
-<dialog id="activityDialog"><div class="dialog"><button class="close" data-close="activityDialog">×</button><div id="activityContent"></div></div></dialog>
+  e.preventDefault();
 
-<dialog id="loginDialog"><div class="dialog small"><button class="close" data-close="loginDialog">×</button>
-<h2>Acceso de administración</h2><p class="muted">Solo la administradora puede modificar las actividades.</p>
-<form id="loginForm"><label>Correo electrónico<input id="email" type="email" required></label><label>Contraseña<input id="password" type="password" required></label><button class="primary" type="submit">Entrar</button><div id="loginError" class="formError hidden"></div></form>
-</div></dialog>
 
-<dialog id="adminDialog"><div class="dialog wide"><button class="close" data-close="adminDialog">×</button>
-<div class="adminHead"><div><div class="eyebrow">ADMINISTRACIÓN</div><h2>Gestionar actividades</h2></div><button id="logout" class="ghost">Cerrar sesión</button></div>
-<form id="activityForm">
-<input id="activityId" type="hidden">
-<div class="formGrid">
-<label>Título*<input id="titulo" required></label>
-<label>Fecha*<input id="fecha" type="date" required></label>
-<label>Hora<input id="hora" placeholder="09:00–14:00"></label>
-<label>Tipo<select id="tipo"><option value="">Otras</option><option>Cultural</option><option>Excursión</option><option>Deportiva</option><option>Visita</option><option>Taller</option><option>Convivencia</option><option>Otra</option></select></label>
-<label>Grupos<input id="grupos" placeholder="2.º ESO A, 2.º ESO B…"></label>
-<label>Lugar<input id="lugar"></label>
-<label>Responsable<input id="responsable"></label>
-<label class="full">Observaciones<textarea id="observaciones" rows="3"></textarea></label>
-</div>
-<div class="actions"><button type="button" id="clear" class="ghost">Limpiar</button><button class="primary" type="submit">Guardar actividad</button></div>
-<div id="formMessage" class="message hidden"></div>
-</form><hr><h3>Actividades del curso</h3><div id="adminList"></div>
-</div></dialog>
-<script src="app.js"></script>
-</body></html>
+  const fechaInicio=$("fecha").value;
+  const fechaFin=$("fechaFin").value;
+
+
+  if(
+    fechaInicio &&
+    fechaFin &&
+    fechaFin<fechaInicio
+  ){
+
+    $("formMessage").textContent=
+      "La fecha de fin no puede ser anterior a la fecha de inicio.";
+
+    $("formMessage").classList.remove("hidden");
+
+    return;
+
+  }
+
+
+  const p={
+    titulo:$("titulo").value.trim(),
+    fecha:fechaInicio,
+    fecha_fin:fechaFin||fechaInicio,
+    hora:$("hora").value.trim(),
+    tipo:$("tipo").value,
+    grupos:$("grupos").value.trim(),
+    lugar:$("lugar").value.trim(),
+    responsable:$("responsable").value.trim(),
+    observaciones:$("observaciones").value.trim()
+  };
+
+
+  const id=$("activityId").value;
+
+
+  const r=id
+    ?await db
+      .from("ACTIVIDADES EXTRAESCOLARES")
+      .update(p)
+      .eq("id",id)
+
+    :await db
+      .from("ACTIVIDADES EXTRAESCOLARES")
+      .insert(p);
+
+
+  if(r.error){
+
+    $("formMessage").textContent=
+      "No se ha podido guardar. Comprueba que tu cuenta es la administradora.";
+
+    $("formMessage").classList.remove("hidden");
+
+    console.error(r.error);
+
+    return;
+  }
+
+
+  $("formMessage").textContent=
+    id
+      ?"Actividad actualizada."
+      :"Actividad añadida.";
+
+  $("formMessage").classList.remove("hidden");
+
+
+  reset();
+
+  await load();
+
+  adminList();
+
+}
