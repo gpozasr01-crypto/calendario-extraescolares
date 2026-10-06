@@ -1,4 +1,3 @@
-
 // CONFIGURACIÓN: usa la URL del proyecto y la Publishable/Anon key.
 // NUNCA pongas aquí la service_role key.
 const SUPABASE_URL="https://lgarvwwikqdfaeckxsay.supabase.co";
@@ -1026,8 +1025,20 @@ async function save(e){
   e.preventDefault();
 
 
-  const fechaInicio=$("fecha").value;
-  const fechaFin=$("fechaFin").value;
+  const fechaInicioEl=$("fecha");
+  const fechaFinEl=$("fechaFin");
+
+
+  const fechaInicio=
+    fechaInicioEl
+      ? fechaInicioEl.value
+      : "";
+
+
+  const fechaFin=
+    fechaFinEl
+      ? fechaFinEl.value
+      : fechaInicio;
 
 
   if(
@@ -1047,15 +1058,27 @@ async function save(e){
 
 
   const p={
+
     titulo:$("titulo").value.trim(),
+
     fecha:fechaInicio,
-    fecha_fin:fechaFin||fechaInicio,
+
+    fecha_fin:
+      fechaFin ||
+      fechaInicio,
+
     hora:$("hora").value.trim(),
+
     tipo:$("tipo").value,
+
     grupos:$("grupos").value.trim(),
+
     lugar:$("lugar").value.trim(),
+
     responsable:$("responsable").value.trim(),
+
     observaciones:$("observaciones").value.trim()
+
   };
 
 
@@ -1063,6 +1086,7 @@ async function save(e){
 
 
   const r=id
+
     ?await db
       .from("ACTIVIDADES EXTRAESCOLARES")
       .update(p)
@@ -1083,13 +1107,14 @@ async function save(e){
     console.error(r.error);
 
     return;
+
   }
 
 
   $("formMessage").textContent=
     id
-      ?"Actividad actualizada."
-      :"Actividad añadida.";
+      ? "Actividad actualizada."
+      : "Actividad añadida.";
 
   $("formMessage").classList.remove("hidden");
 
@@ -1101,7 +1126,6 @@ async function save(e){
   adminList();
 
 }
-
 
 // ============================================================
 // LISTA DE ADMINISTRACIÓN
