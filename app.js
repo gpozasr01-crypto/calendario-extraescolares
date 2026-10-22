@@ -597,7 +597,7 @@ activities
 
     b.type = "button";
 
-    b.className = `event ${cls(a.tipo)}`;
+    b.className = `event ${cls(a.tipo)} ambito-${cls(a.ambito || "fuera")}`;
 
 
     // ====================================================
@@ -952,7 +952,7 @@ function detail(a){
   const multi=activityIsMultiDay(a);
 
   $("activityContent").innerHTML=
-    `<div class="eyebrow">${esc(a.tipo||"ACTIVIDAD")}</div>`+
+    `<div class="eyebrow">${esc(a.ambito==="dentro" ? "ACTIVIDAD DENTRO DEL CENTRO" : "ACTIVIDAD FUERA DEL CENTRO")} · ${esc(a.tipo||"ACTIVIDAD")}</div>`+
     `<h2>${esc(a.titulo||"Sin título")}</h2>`+
     `<div class="detail"><dl>`+
 
@@ -1003,6 +1003,7 @@ function fill(a){
   $("fechaFin").value=a.fecha_fin||a.fecha||"";
   $("hora").value=a.hora||"";
   $("tipo").value=a.tipo||"";
+  if($("ambito")) $("ambito").value=a.ambito||"fuera";
   $("grupos").value=a.grupos||"";
   $("lugar").value=a.lugar||"";
   $("responsable").value=a.responsable||"";
@@ -1071,6 +1072,8 @@ async function save(e){
 
     tipo:$("tipo").value,
 
+    ambito:$("ambito") ? $("ambito").value : "fuera",
+
     grupos:$("grupos").value.trim(),
 
     lugar:$("lugar").value.trim(),
@@ -1125,6 +1128,68 @@ async function save(e){
 
   adminList();
 
+}
+
+
+// ============================================================
+// REGISTRO PÚBLICO DE ACTIVIDADES DENTRO DEL CENTRO
+// Solo permite insertar actividades internas; la política RLS
+// de Supabase debe restringir los INSERT anónimos a ambito='dentro'.
+// ============================================================
+
+async function submitInternalActivity(e){
+  e.preventDefault();
+  const form=$("internalActivityForm");
+  const message=$("internalMessage");
+  message.classList.add("hidden");
+
+  const start=$("internalFecha").value;
+  const end=$("internalFechaFin").value || start;
+  if(!start || !end || end < start){
+    message.textContent="Comprueba las fechas: la fecha de fin no puede ser anterior a la de inicio.";
+    message.classList.remove("hidden");
+    return;
+  }
+
+  const payload={
+    titulo:$("internalTitulo").value.trim(),
+    fecha:start,
+    fecha_fin:end,
+    hora:$("internalHora").value.trim(),
+    tipo:$("internalTipo").value || "Otra",
+    ambito:"dentro",
+    grupos:$("internalGrupos").value.trim(),
+    lugar:$("internalLugar").value.trim() || "IES Alagón",
+    responsable:$("internalResponsable").value.trim(),
+    observaciones:$("internalObservaciones").value.trim()
+  };
+
+  if(!payload.titulo){
+    message.textContent="Escribe el título de la actividad.";
+    message.classList.remove("hidden");
+    return;
+  }
+
+  const submit=form.querySelector('button[type="submit"]');
+  submit.disabled=true;
+  submit.textContent="Enviando…";
+  try{
+    const {error}=await db.from("ACTIVIDADES EXTRAESCOLARES").insert(payload);
+    if(error) throw error;
+    form.reset();
+    $("internalFechaFin").value="";
+    message.textContent="Actividad registrada y añadida al calendario.";
+    message.classList.remove("hidden");
+    await load();
+    setTimeout(()=>{ if($("internalActivityDialog").open) $("internalActivityDialog").close(); },1200);
+  }catch(error){
+    console.error(error);
+    message.textContent="No se ha podido registrar. Puede que falte configurar el permiso de envío en Supabase. Comunícalo a la administradora.";
+    message.classList.remove("hidden");
+  }finally{
+    submit.disabled=false;
+    submit.textContent="Registrar actividad";
+  }
 }
 
 // ============================================================
@@ -1265,7 +1330,7 @@ function adminList(){
         `<div>`+
           `<div class="adminTitle">${esc(a.titulo)}</div>`+
           `<div class="adminMeta">`+
-            `${esc(range)}`+
+            `${a.ambito==="dentro" ? "Dentro del centro · " : "Fuera del centro · "}${esc(range)}`+
             `${a.hora?" · "+esc(a.hora):""}`+
             `${a.grupos?" · "+esc(a.grupos):""}`+
           `</div>`+
@@ -1507,6 +1572,8 @@ $("today").onclick=()=>{
 $("adminBtn").onclick=admin;
 
 $("activityForm").onsubmit=save;
+if($("internalActivityForm")) $("internalActivityForm").onsubmit=submitInternalActivity;
+if($("openInternalForm")) $("openInternalForm").onclick=()=> $("internalActivityDialog").showModal();
 
 $("clear").onclick=reset;
 
