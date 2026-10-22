@@ -10,36 +10,69 @@
 <body>
 <header class="topbar">
   <div><div class="eyebrow">IES ALAGÓN</div><h1>Actividades extraescolares</h1></div>
-  <button id="adminBtn" class="ghost">Administrar</button>
+  <div class="topActions">
+    <button id="openInternalForm" class="primary">Registrar actividad dentro del centro</button>
+    <button id="adminBtn" class="ghost">Administrar</button>
+  </div>
 </header>
 <main class="container">
 <section class="card">
   <div class="toolbar">
-    <button id="prev" class="nav">‹</button>
+    <button id="prev" class="nav" aria-label="Mes anterior">‹</button>
     <div><h2 id="month"></h2><button id="today" class="today">Hoy</button></div>
-    <button id="next" class="nav">›</button>
+    <button id="next" class="nav" aria-label="Mes siguiente">›</button>
   </div>
-  <div class="legend"><span><i class="cultural"></i>Cultural</span><span><i class="excursion"></i>Excursión</span><span><i class="sport"></i>Deportiva</span><span><i class="other"></i>Otras</span></div>
-  <div id="status" class="stlatus">Cargando actividades…</div>
+  <div class="legend">
+    <span><i class="cultural"></i>Cultural</span><span><i class="excursion"></i>Excursión</span><span><i class="sport"></i>Deportiva</span><span><i class="other"></i>Otras</span>
+    <span class="legendScope"><i class="scopeInside"></i>Dentro del centro</span><span class="legendScope"><i class="scopeOutside"></i>Fuera del centro</span>
+  </div>
+  <div id="status" class="status">Cargando actividades…</div>
   <div id="calendar" class="calendar hidden"></div>
   <div id="empty" class="empty hidden">No hay actividades programadas para este mes.</div>
   <div id="error" class="error hidden"></div>
 </section>
 </main>
 
-<dialog id="activityDialog"><div class="dialog"><button class="close" data-close="activityDialog">×</button><div id="activityContent"></div></div></dialog>
+<dialog id="internalActivityDialog">
+  <div class="dialog">
+    <button class="close" data-close="internalActivityDialog" aria-label="Cerrar">×</button>
+    <div class="eyebrow">IES ALAGÓN · REGISTRO RÁPIDO</div>
+    <h2>Actividad dentro del centro</h2>
+    <p class="muted">Utiliza este formulario para charlas, talleres y otras actividades que se realizan en el centro. Al enviarlo, la actividad aparecerá en el calendario.</p>
+    <form id="internalActivityForm">
+      <div class="formGrid">
+        <label class="full">Título de la actividad*<input id="internalTitulo" required maxlength="160"></label>
+        <label>Fecha de inicio*<input id="internalFecha" type="date" required></label>
+        <label>Fecha de fin<input id="internalFechaFin" type="date"></label>
+        <label>Hora<input id="internalHora" placeholder="09:00–10:00"></label>
+        <label>Tipo
+          <select id="internalTipo">
+            <option value="Taller">Taller</option><option value="Cultural">Cultural</option><option value="Visita">Charla / visita</option><option value="Convivencia">Convivencia</option><option value="Deportiva">Deportiva</option><option value="Otra">Otra</option>
+          </select>
+        </label>
+        <label>Grupos participantes<input id="internalGrupos" placeholder="2.º ESO A, 2.º ESO B…"></label>
+        <label>Lugar<input id="internalLugar" value="IES Alagón"></label>
+        <label>Profesor/a responsable*<input id="internalResponsable" required maxlength="120"></label>
+        <label class="full">Observaciones<textarea id="internalObservaciones" rows="3"></textarea></label>
+      </div>
+      <div class="actions"><button class="primary" type="submit">Registrar actividad</button></div>
+      <div id="internalMessage" class="message hidden" role="status"></div>
+    </form>
+  </div>
+</dialog>
 
+<dialog id="activityDialog"><div class="dialog"><button class="close" data-close="activityDialog">×</button><div id="activityContent"></div></div></dialog>
 <dialog id="loginDialog"><div class="dialog small"><button class="close" data-close="loginDialog">×</button>
 <h2>Acceso de administración</h2><p class="muted">Solo la administradora puede modificar las actividades.</p>
 <form id="loginForm"><label>Correo electrónico<input id="email" type="email" required></label><label>Contraseña<input id="password" type="password" required></label><button class="primary" type="submit">Entrar</button><div id="loginError" class="formError hidden"></div></form>
 </div></dialog>
-
 <dialog id="adminDialog"><div class="dialog wide"><button class="close" data-close="adminDialog">×</button>
 <div class="adminHead"><div><div class="eyebrow">ADMINISTRACIÓN</div><h2>Gestionar actividades</h2></div><button id="logout" class="ghost">Cerrar sesión</button></div>
 <form id="activityForm">
 <input id="activityId" type="hidden">
 <div class="formGrid">
 <label>Título*<input id="titulo" required></label>
+<label>Ámbito<select id="ambito"><option value="fuera">Fuera del centro</option><option value="dentro">Dentro del centro</option></select></label>
 <label>Fecha de inicio*<input id="fecha" type="date" required></label>
 <label>Fecha de fin*<input id="fechaFin" type="date" required></label>
 <label>Hora<input id="hora" placeholder="09:00–14:00"></label>
@@ -55,3 +88,4 @@
 </div></dialog>
 <script src="app.js"></script>
 </body></html>
+
