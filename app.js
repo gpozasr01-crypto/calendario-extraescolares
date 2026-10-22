@@ -6,6 +6,9 @@ const SUPABASE_ANON_KEY="sb_publishable_XzeVcVs_vyOuwGPMY6gP6A_kvuEss2b";
 const {createClient}=supabase;
 const db=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
+// Modo de visualización mediante el parámetro ?modo=consulta o ?modo=profesor.
+const PAGE_MODE=new URLSearchParams(window.location.search).get("modo") || "profesor";
+
 // ID del único usuario que puede administrar el calendario
 const ADMIN_USER_ID="e2477dd4-cf99-4e14-b0cf-8fd6f3f4e5ad";
 
@@ -307,6 +310,11 @@ function cls(v){
 // ============================================================
 
 async function updateAdminButton(){
+
+  if(PAGE_MODE==="consulta"){
+    $("adminBtn").style.display="none";
+    return;
+  }
 
   try{
 
@@ -1573,7 +1581,13 @@ $("adminBtn").onclick=admin;
 
 $("activityForm").onsubmit=save;
 if($("internalActivityForm")) $("internalActivityForm").onsubmit=submitInternalActivity;
-if($("openInternalForm")) $("openInternalForm").onclick=()=> $("internalActivityDialog").showModal();
+if($("openInternalForm")){
+  if(PAGE_MODE==="consulta"){
+    $("openInternalForm").style.display="none";
+  }else{
+    $("openInternalForm").onclick=()=> $("internalActivityDialog").showModal();
+  }
+}
 
 $("clear").onclick=reset;
 
@@ -1675,6 +1689,8 @@ document
 //
 
 document.addEventListener("keydown",e=>{
+
+  if(PAGE_MODE==="consulta") return;
 
   if(
     e.ctrlKey &&
